@@ -1,8 +1,8 @@
-// Service Worker for Firebase Cloud Messaging (modular compat version)
+// Minimal Service Worker for Firebase Messaging (compat SDK)
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
-// ---- TODO: replace with the same config used in index.html ----
+// Firebase config – keep in sync with index.html
 firebase.initializeApp({
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_AUTH_DOMAIN",
@@ -14,7 +14,7 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background message handler – displays a notification safely using textContent
+// Background message handler – safe text insertion
 messaging.onBackgroundMessage(payload => {
   const title = payload.notification?.title || 'Notification';
   const body = payload.notification?.body || '';
@@ -24,4 +24,11 @@ messaging.onBackgroundMessage(payload => {
     data: payload.data || {}
   };
   self.registration.showNotification(title, options);
+});
+
+// Click handling – open the URL from payload.data.url
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(clients.openWindow(url));
 });
