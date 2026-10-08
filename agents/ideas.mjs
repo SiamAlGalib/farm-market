@@ -10,12 +10,12 @@ const files = fs
   .join("\n");
 
 const out = await ask(
-  `STRATEGY:\n${strategy}\n\nCURRENT FILES:\n${files}\n\nPropose the 3 most valuable next features as a JSON array of {"title": "...", "spec": "what it does, who it's for, what done looks like"}.`,
+  `STRATEGY:\n${strategy}\n\nCURRENT FILES:\n${files}\n\nPropose the 3 most valuable next features as a JSON object: {"ideas":[{"title": "...", "spec": "what it does, who it's for, what done looks like"}]}.`,
   "You are a product manager. Suggest small, buildable features that fit the strategy. Respond with JSON only.",
   true
 );
 
-for (const idea of JSON.parse(out).slice(0, 3)) {
+for (const idea of JSON.parse(out).ideas.slice(0, 3)) {
   await fetch(`https://api.github.com/repos/${repo}/issues`, {
     method: "POST",
     headers: {
