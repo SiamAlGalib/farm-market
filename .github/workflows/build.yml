@@ -1,0 +1,28 @@
+name: build-agents
+on:
+  issues:
+    types: [labeled]
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+jobs:
+  build:
+    if: github.event.label.name == 'build'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node agents/build.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+      - run: rm -f .agent-title.txt
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          branch: agent/issue-${{ github.event.issue.number }}
+          title: "Agent: ${{ github.event.issue.title }}"
+          body: "Closes #${{ github.event.issue.number }}. Built by the agent team. Please review."
+          commit-message: "Agent: ${{ github.event.issue.title }}"
