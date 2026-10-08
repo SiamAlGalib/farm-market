@@ -1,20 +1,12 @@
-export async function ask(prompt, system, json = false) {
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-oss-120b",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: prompt },
-      ],
-      ...(json ? { response_format: { type: "json_object" } } : {}),
-    }),
-  });
-  const data = await res.json();
+Run node agents/build.mjs
+file:///home/runner/work/farm-market/farm-market/agents/llm.mjs:18
   if (!res.ok) throw new Error(JSON.stringify(data));
-  return data.choices[0].message.content;
-}
+                     ^
+
+Error: {"error":{"message":"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01m4efacb0entrtm6n9c4br3cn` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5051, Requested 2980. Please try again in 232.499999ms. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+    at ask (file:///home/runner/work/farm-market/farm-market/agents/llm.mjs:18:22)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///home/runner/work/farm-market/farm-market/agents/build.mjs:33:29
+
+Node.js v20.20.2
+Error: Process completed with exit code 1.
