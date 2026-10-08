@@ -4,68 +4,22 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Content Security Policy: only allow scripts from self and gstatic -->
+  <!-- CSP: no unsafe‑inline, all scripts must be external -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.firebaseapp.com https://*.googleapis.com;">
   <title>Order Tracker</title>
   <style>
     body {font-family: Arial, sans-serif; margin:20px;}
     #enable-notif {padding:10px 20px; font-size:1rem;}
+    #lang-toggle {margin-left:10px; padding:5px 10px;}
   </style>
 </head>
 <body>
-  <h1>Welcome</h1>
+  <h1 data-i18n="welcome">Welcome</h1>
   <button id="enable-notif">নোটিফিকেশন চালু করুন / Enable Notifications</button>
+  <button id="lang-toggle" aria-label="Toggle language"></button>
 
-  <!-- Firebase SDKs (modular) -->
-  <script type="module">
-    // Ensure page is served over HTTPS (or localhost) – required for Service Workers
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-      console.warn('Push notifications require a secure context (HTTPS).');
-    }
-
-    // Import the Firebase modules we need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js";
-    import { initPushNotifications } from "./messaging.js";
-
-    // ---- TODO: replace with your real config, keep it out of source control ----
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // Export for other modules (messaging.js expects these globals)
-    window.firebaseApp = app;
-    window.auth = auth;
-    window.db = db;
-
-    // Register service worker for background messages
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then(reg => console.log('SW registered', reg.scope))
-        .catch(err => console.error('SW registration failed', err));
-    }
-
-    // Hook into auth state – only register token when a user is signed in
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        initPushNotifications().catch(e => console.error('Push init failed', e));
-      }
-    });
-
-    // Optional button to re‑request permission if the user dismissed it earlier
-    document.getElementById('enable-notif').addEventListener('click', () => {
-      initPushNotifications().catch(e => console.error('Push init failed', e));
-    });
-  </script>
+  <!-- External scripts -->
+  <script type="module" src="/app.js"></script>
+  <script type="module" src="/messaging.js"></script>
 </body>
 </html>
