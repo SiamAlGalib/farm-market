@@ -9,6 +9,7 @@ export async function ask(prompt, system, json = false) {
       },
       body: JSON.stringify({
         model: "openai/gpt-oss-120b",
+        reasoning_effort: "low",
         messages: [
           { role: "system", content: system },
           { role: "user", content: prompt },
@@ -19,13 +20,14 @@ export async function ask(prompt, system, json = false) {
     const data = await res.json();
     if (res.ok) return data.choices[0].message.content;
 
-    // Rate limited: wait and try again
-    if (res.status === 429 && attempt < maxAttempts) {
-      const waitMs = Math.min(20000 * attempt, 60000);
-      console.log(`Rate limited. Waiting ${waitMs / 1000}s (attempt ${attempt})`);
+    const code = data?.error?.code;
+    const retryable = res.status === 429 || code === "json_validate_failed";
+    if (retryable && attempt < maxAttempts) {
+      const waitMs = res.status === 429 ? Math.min(20000 * attempt, 60000) : 3000;
+      console.log(`${code || res.status}: retrying in ${waitMs / 1000}s (attempt ${attempt})`);
       await new Promise((r) => setTimeout(r, waitMs));
       continue;
     }
-    throw new Error(JSON.stringify(data));
+    throw new Error(JSON.stringify(data).slice(0, 1500));
   }
 }
