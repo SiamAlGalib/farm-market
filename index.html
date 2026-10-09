@@ -4,13 +4,17 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.firebaseapp.com https://*.googleapis.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://fcm.googleapis.com;">
   <title>Farm Market – Add Product</title>
   <style>
     body {font-family:Arial,sans-serif;margin:20px;}
     .btn {display:inline-block;padding:12px 24px;background:#28a745;color:#fff;border:none;border-radius:4px;font-size:1rem;cursor:pointer;}
     .preview {margin-top:10px;max-width:100%;height:auto;display:none;}
     #loader {display:none;}
+    #notifStatus {margin-left:10px;cursor:pointer;}
+    .icon-bell::before {content:"\1F514";}
+    .enabled {color:green;}
+    .disabled {color:gray;}
   </style>
 </head>
 <body>
@@ -24,14 +28,17 @@
     <img id="photoPreview" class="preview" alt="preview" />
     <div id="loader">Uploading…</div><br>
     <button type="submit" class="btn">Save Product</button>
+    <span id="notifStatus" class="icon-bell disabled" title="Enable notifications"></span>
   </form>
 
   <script type="module">
+    // ----- Firebase App init -----
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js";
-    import { getFirestore, addDoc, collection } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js";
+    import { getStorage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js";
     import { compressImage } from "./utils/compressImage.js";
+    import { initPushNotifications } from "./messaging.js";
 
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
@@ -46,23 +53,41 @@
     const db = getFirestore(app);
     const storage = getStorage(app);
 
+    // expose globals used by messaging.js
+    window.firebaseApp = app;
+    window.auth = auth;
+    window.db = db;
+
+    // ----- UI for notification status -----
+    const notifIcon = document.getElementById('notifStatus');
+    function updateNotifUI() {
+      const granted = Notification.permission === 'granted';
+      notifIcon.classList.toggle('enabled', granted);
+      notifIcon.classList.toggle('disabled', !granted);
+    }
+    updateNotifUI();
+    notifIcon.addEventListener('click', () => {
+      if (Notification.permission !== 'granted') {
+        initPushNotifications().catch(e=>console.error(e)).finally(updateNotifUI);
+      }
+    });
+
+    // ----- Photo handling -----
     const photoInput = document.getElementById('photoInput');
     const previewImg = document.getElementById('photoPreview');
     const loader = document.getElementById('loader');
-    let compressedBlob = null; // will hold result of compression
-
+    let compressedBlob = null;
     photoInput.addEventListener('change', async e => {
       const file = e.target.files[0];
       if (!file) return;
       if (!file.type.startsWith('image/')) { alert('Please select an image.'); return; }
-      // compress (max 200KB)
       try { compressedBlob = await compressImage(file, 200); }
       catch(err){ console.error(err); alert('Compression failed'); return; }
-      const url = URL.createObjectURL(compressedBlob);
-      previewImg.src = url;
+      previewImg.src = URL.createObjectURL(compressedBlob);
       previewImg.style.display = 'block';
     });
 
+    // ----- Form submit -----
     document.getElementById('productForm').addEventListener('submit', async ev => {
       ev.preventDefault();
       const name = document.getElementById('name').value.trim();
@@ -73,17 +98,26 @@
       if (compressedBlob) {
         const uid = auth.currentUser.uid;
         const path = `productPhotos/${uid}/${Date.now()}.jpg`;
+        const { ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js');
         const storageRef = ref(storage, path);
         await uploadBytes(storageRef, compressedBlob, {contentType:'image/jpeg'});
         photoUrl = await getDownloadURL(storageRef);
       }
+      const { addDoc, collection } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js');
       await addDoc(collection(db, 'products'), { name, price, photoUrl, farmerId: auth.currentUser.uid, createdAt: new Date().toISOString() });
       loader.style.display = 'none';
       alert('Product saved');
-      // reset form
       ev.target.reset();
       previewImg.style.display = 'none';
       compressedBlob = null;
+    });
+
+    // Ensure push init runs after auth is ready (optional auto‑init)
+    onAuthStateChanged(auth, user => {
+      if (user && Notification.permission === 'default') {
+        // Prompt once per session
+        // initPushNotifications().catch(console.error);
+      }
     });
   </script>
 </body>
