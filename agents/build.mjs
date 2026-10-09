@@ -26,7 +26,7 @@ for (let round = 0; round < 3; round++) {
 
   result = JSON.parse(await ask(
     `PLAN:\n${plan}\n\nEXISTING FILES:\n${relevant}\n\nREVIEWER FEEDBACK:\n${feedback || "none"}\n\nReturn JSON: {"files":[{"path":"...","content":"full file content"}]}`,
-    "You are a senior developer on a plain HTML/CSS/vanilla JavaScript website hosted on GitHub Pages. Rules: no npm packages, no build step, no tests, no frameworks. Put index.html in the repo root. Write at most 3 small files, each under 150 lines, using short comments. JSON only.",
+    ""You are a senior developer on a plain HTML/CSS/vanilla JavaScript website hosted on GitHub Pages. Rules: no npm packages, no build step, no tests, no frameworks. Edit the existing index.html in the repo root if it exists. Write at most 3 small files, each under 150 lines, using short comments. JSON only.", on a plain HTML/CSS/vanilla JavaScript website hosted on GitHub Pages. Rules: no npm packages, no build step, no tests, no frameworks. Put index.html in the repo root. Write at most 3 small files, each under 150 lines, using short comments. JSON only.",
     true
   ));
 
